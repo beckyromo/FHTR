@@ -32,6 +32,5 @@
 		<File RelativePath=".\main.f90"/>
 		<File RelativePath=".\pebblebed.f90"/>
 		<File RelativePath=".\pipes.f90"/>
-		<File RelativePath=".\core.f90"/>
 		<File RelativePath=".\trisoprop.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

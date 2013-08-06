@@ -13,12 +13,41 @@
     !  k_UO2 --------------------------plus two more to fix/delete
     !  k_trisolayers
     !
+    !  SUBROUTINE:
+    !  k_print
+    !
     !******************************************************************************** 
     MODULE trisoprop
     
         IMPLICIT NONE
 
     CONTAINS
+    
+    
+            !================================================================================
+            ! SUBROUTINE: k_print
+            !
+            ! Outputs Thermal Conductivities from 700 to 1500 Celcius to file k_printed.txt
+            !================================================================================
+            SUBROUTINE k_print()
+                        
+                IMPLICIT NONE
+                
+                integer             :: I                    ! Loop counter  
+                real(8)             :: TC                   ! Temperature [Celcius]
+
+                open(11,FILE="k_printed.txt")
+                write(11,*) "  THERMAL CONDUCTIVITY OF TRISO PARTICLE MATERIALS   "
+                write(11,*) "       T       GF      SiC     DPyC      PyC      UO2"
+                do I=700,1500,50
+                    TC=I
+                    write(11,'(F9.2,F9.3,F9.3,F9.3,F9.3,F9.3)') &
+                            TC, k_graphite(TC), k_SiC(TC), k_densePyC(TC), k_PyC(TC), k_UO2(TC)
+                end do
+                close(11)
+                
+            END SUBROUTINE k_print
+        
             
             !================================================================================
             !  FUNCTION: THERMAL CONDUCTIVITY OF GRAPHITE [W/m-K]
