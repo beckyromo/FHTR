@@ -8,12 +8,15 @@
     PROGRAM main    
     
         USE pebblebed, ONLY: pebblebedLSSSloop,pebblebedcore
+        USE prismatic, ONLY: prismaticcore
+        USE flibeprop, ONLY: flibe_rho
             
         IMPLICIT NONE
         
         real(8)             :: POWER                ! Reactor power [W]
         !real(8)             :: DECAY_HEAT           ! Decay heat of reactor [W]
         !real(8)             :: POWER_NORM           ! Norminal Fisison Power [W]
+        real(8)             :: Q_core               ! Volumetric flow rate in the core [m^3/s]
         real(8)             :: W_core               ! Mass flow rate in the core [kg/s]
         real(8)             :: T_in                 ! Inlet temperature of the core [Celcius]        
         real(8)             :: T_fuel_limit         ! LSSS temoerature limit for fuel (max fuel temp in hot channel) 
@@ -24,22 +27,77 @@
         real(8)             :: T_core_max           ! Outlet temperature of the core [Celcius]     
         
         
+        !! ===============================================================================
+        !!  PEBBLE BED PEBBLE BED PEBBLE BED PEBBLE BED PEBBLE BED PEBBLE BED PEBBLE BED
+        !! -------------------------------------------------------------------------------
+        !! -------------------------------------------------------------------------------
+        !
+        !!================================================================================
+        !! INPUTS
+        !!================================================================================
+        !POWER=20.0E6_8              ! [W]
+        !Q_core=84.6_8/flibe_rho(600.0_8)*0.9              ! [m^3/s]
+        !T_in=500.0_8                ! [Celcius]
+        !T_fuel_limit=1300.0_8       ! [Celcius]
+        !T_coolant_limit=1200.0_8    ! [Celcius]
+        !T_out_limit=700.0_8         ! [Celcius]
+        !
+        !
+        !!================================================================================
+        !! Start Calculations
+        !!================================================================================
+        !write(*,*)
+        !write(*,*) 'To Begin Program, hit enter:'
+        !read(*,*)
+        !
+        !open(10,FILE="output.txt")
+        !
+        !open(20,FILE="LSSS.txt")
+        !
+        !!================================================================================
+        !! Calculates LSSS for pebblebed core
+        !!================================================================================
+        !call pebblebedLSSSloop(Q_core,T_in,T_fuel_limit,T_coolant_limit,T_out_limit,T_out,T_coolant_max,T_core_max)
+        !
+        !!================================================================================
+        !! Calculates LSSS for single point for pebblebed core
+        !!================================================================================
+        !POWER=44.28E6_8              ! [W]
+        !Q_core=84.6_8/flibe_rho(600.0_8)              ! [m^3/s]
+        !write(*,*) Q_core*3600.0
+        !T_in=466.0_8                ! [Celcius]
+        !write(10,*) "SINGLE POWER LEVEL OUTPUT OF ", POWER
+        !write(*,*) "SINGLE POWER LEVEL OUTPUT OF ", POWER
+        !write(*,*)
+        !write(*,*) "               Q       In      Out     Cool     Fuel"
+        !call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
+        !write(*,'(A,F9.2,F9.3,F9.3,F9.3,F9.3)') "AVG CH: ", Q_core*3600.0, T_in, T_out, T_coolant_max, T_core_max         
+        !call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
+        !write(*,'(A, F9.2,F9.3,F9.3,F9.3,F9.3)') "HOT CH: ", Q_core*3600.0, T_in, T_out, T_coolant_max, T_core_max
+        
+        
+        ! ===============================================================================
+        ! PRISMATIC PRISMATIC PRISMATIC PRISMATIC PRISMATIC PRISMATIC PRISMATIC PRISMATIC 
+        ! -------------------------------------------------------------------------------
+        ! -------------------------------------------------------------------------------
+        
         !================================================================================
         ! INPUTS
         !================================================================================
         POWER=20.0E6_8              ! [W]
-        W_core=76.14_8              ! [kg/s]
-        T_in=470.0_8                ! [Celcius]
+        Q_core=84.6_8/flibe_rho(600.0_8)*0.9              ! [m^3/s]
+        T_in=500.0_8                ! [Celcius]
         T_fuel_limit=1300.0_8       ! [Celcius]
         T_coolant_limit=1200.0_8    ! [Celcius]
-        T_out_limit=720.0_8         ! [Celcius]
-        
-        
+        T_out_limit=700.0_8         ! [Celcius]
+
+
         !================================================================================
         ! Start Calculations
         !================================================================================
         write(*,*)
-        write(*,*) 'Begin Program'
+        write(*,*) 'To Begin Program, hit enter:'
+        read(*,*)
 
         open(10,FILE="output.txt")
 
@@ -48,15 +106,30 @@
         !================================================================================
         ! Calculates LSSS for pebblebed core
         !================================================================================
-        call pebblebedLSSSloop(W_core,T_in,T_fuel_limit,T_coolant_limit,T_out_limit,T_out,T_coolant_max,T_core_max)
+        !call pebblebedLSSSloop(Q_core,T_in,T_fuel_limit,T_coolant_limit,T_out_limit,T_out,T_coolant_max,T_core_max)
         
+        !================================================================================
+        ! Calculates LSSS for single point for prismatic core
+        !================================================================================
+        POWER=20.0E6_8                      ! [W]
+        W_core=84.6_8                       ! [kg/s]
+        Q_core=W_core/flibe_rho(600.0_8)    ! [m^3/s]      
+        T_in=500.0_8                        ! [Celcius]
+        
+        write(*,*) Q_core*3600.0
         write(10,*) "SINGLE POWER LEVEL OUTPUT OF ", POWER
-        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1)
-
+        write(*,*) "SINGLE POWER LEVEL OUTPUT OF ", POWER
+        write(*,*)
+        write(*,*) "               W       In      Out     Cool     Fuel"
+        call prismaticcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1) !pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
+        write(*,'(A,F9.2,F9.3,F9.3,F9.3,F9.3)') "AVG CH: ", Q_core*3600.0, T_in, T_out, T_coolant_max, T_core_max         
+        call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
+        write(*,'(A, F9.2,F9.3,F9.3,F9.3,F9.3)') "HOT CH: ", Q_core*3600.0, T_in, T_out, T_coolant_max, T_core_max   
         
                                     
         close(10)
         close(20)
+        write(*,*)
         write(*,*) 'Program Complete'
                
         

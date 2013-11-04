@@ -11,13 +11,14 @@
 !  FF_PB
 !
 !  SUBROUTINES:
-!  pebblebedcore    calculates core temperatures for given power, mass flow rate, 
-!                   and inlet temperature for either average or hot channel, 
-!                   prints core temperature results and outputs the outlet 
-!                   temperature, maximum coolant temperature, and maximum 
-!                   core/fuel temperature
-!  pebbleLSSSloop   calls subroutine pebblebedcore iterating on power to print LSSS
-!                   for given fuel, coolant, and outlet temperature limits
+!  pebblebedcore        calculates core temperatures for given power, mass flow 
+!                       rate, and inlet temperature for either average or hot 
+!                       channel, prints core temperature results and outputs the 
+!                       outlet temperature, maximum coolant temperature, and 
+!                       maximum core/fuel temperature
+!  pebblebedLSSSloop    calls subroutine pebblebedcore iterating on power to 
+!                       print LSSS for given fuel, coolant, and outlet 
+!                       temperature limits
 !
 !******************************************************************************** 
 MODULE pebblebed
@@ -36,7 +37,7 @@ CONTAINS
     !================================================================================
     ! INPUTS
     !   POWER           :: Power [W]
-    !   W_core          :: Mass flow rate [kg/s]
+    !   Q_core          :: Volumetric flow rate [m^3/s]
     !   T_in            :: Inlet temperature [Celcius]
     !   channel         :: Selects for average (1) or hot (2) channel calculation
     ! OUTPUTS    
@@ -46,7 +47,7 @@ CONTAINS
     ! REFERENCE
     !   Yao's Code, which uses power distribution data
     !================================================================================
-    SUBROUTINE pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,channel)
+    SUBROUTINE pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,channel)
     
         USE global
         USE flibeprop, ONLY: flibe_cp, flibe_k, flibe_rho, flibe_mu, flibe_enthalpy, flibe_temperature
@@ -89,7 +90,8 @@ CONTAINS
         real(8),intent(in)  :: POWER            ! Reactor power [W]
         real(8)             :: DECAY_HEAT       ! Decay heat of reactor [W]
         real(8)             :: POWER_NORM       ! Norminal Fisison Power [W]
-        real(8),intent(in)  :: W_core           ! Mass flow rate in the core [kg/s]
+        real(8),intent(in)  :: Q_core           ! Volumetric flow rate in the core [m^3/s]
+        real(8)             :: Q                ! Volumetric flow rate in the core [m^3/s]
         real(8)             :: W                ! Mass flow rate in the core [kg/s]
         real(8),intent(in)  :: T_in             ! Inlet temperature of the core [Celcius]
         
@@ -161,31 +163,32 @@ CONTAINS
         
         ! FUEL: UO2,PyC,DPyC,SiC,DPyC,TRISO+Graphite,Graphite (
         DATA	RPF/0.25E-3,0.345E-3,0.385E-3,0.42E-3,0.46E-3,25.0E-3,30.0E-3/  ! Radius [m]
-        DATA	KPF/2.5,0.5,4.0,13.9,4.0,30.0,30.0/                             ! Thermal conductivity [W/m-C]
-        DATA	RHOPF/10.5E3,1.05E3,1.9E3,3.18E3,1.9E3,1.73E3,1.73E3/           ! Density [kg/m^3]
-        DATA	CPPF/332,1.5,1.5,1.5,1.5,710,710/                               ! Heat capacity [J/kg-K]
+        DATA	KPF/2.5,0.5,4.0,13.9,4.0,30.0,30.0/                             ! Thermal conductivity [W/m-C] NOTE: OVERWRITTEN
+        !DATA	RHOPF/10.5E3,1.05E3,1.9E3,3.18E3,1.9E3,1.73E3,1.73E3/           ! Density [kg/m^3]
+        !DATA	CPPF/332,1.5,1.5,1.5,1.5,710,710/                               ! Heat capacity [J/kg-K]
         
         ! Calculated inputs
-        VolPF5=4.0/3.0*PI*RPF(5)**3.0
+        VolPF5=4.0/3.0*PI*RPF(5)**3.0 ! TRISO volume
         VolPF6=4.0/3.0*PI*RPF(6)**3.0
         VolPF7=4.0/3.0*PI*RPF(7)**3.0
-        VolPF1=4.0/3.0*PI*RPF(1)**3.0
+        VolPF1=4.0/3.0*PI*RPF(1)**3.0 ! Fuel kernel volume
         NTRISO=VolPF6*7.5/100.0/VolPF5
         A_core=DD1**2-((DD1*2.0**0.5-DD2)/2.0**0.5)**2*2.0-0.35*0.35
         D_core=(4.0*A_core/PI)**0.5                                     ! HYDRAULIC RADIUS OF THE CORE [m]
-        ACTUAL_POWER=POWER_NORM*POWER+DECAY_HEAT        
+        ACTUAL_POWER=POWER_NORM*POWER+DECAY_HEAT       
+        
 
         
         ! Set criteria for average (1) or hot (2) channel
         IF (channel==1) THEN
-            W=W_core
+            W=Q_core*flibe_rho(T_in)
             FH=1.0_8
             FKZ=1.0_8
             FDTW=1.0_8
             FDTF=1.0_8
             FFDF=1.0_8
         ELSE IF (channel==2) THEN
-            W=W_core*FFDF
+            W=Q_core*flibe_rho(T_in)*FFDF
         END IF
             
                 
@@ -294,9 +297,9 @@ CONTAINS
                 else if (channel==2) then
                     write(10,*) "        TEMPERATURES IN HOT CHANNEL         "
                 end if
-                write(10,*) "      TC       TW       TG      TCL     TCLT"
+                write(10,*) "       W       TC       TW       TG      TCL     TCLT"
             end if
-            write(10,'(F9.3,F9.3,F9.3,F9.3,F9.3)') TC, TW, TG, T_CL_core(I), T_CL_TRISO(I)
+            write(10,'(F9.3,F9.3,F9.3,F9.3,F9.3,F9.3)') W, TC, TW, TG, T_CL_core(I), T_CL_TRISO(I)
             ! write to command line        
             !write(*,*) PPP, PPT, TC, TW, TG, T_CL_core(I), T_CL_TRISO(I)
             
@@ -319,9 +322,9 @@ CONTAINS
         
         write(10,*)
         write(10,*) "                           LSSS Results                           "
-        write(10,*) "   POWER      W      T_IN    T_OUT    TC_MAX   TF_MAX"
-        write(10,'(F9.2,F9.3,F9.3,F9.3,F9.3,F9.3)') &
-                    POWER/1.0E6,W,T_in,T_out,T_coolant_max,T_core_max
+        write(10,*) "   POWER      Q      T_IN    T_OUT    TC_MAX   TF_MAX"
+        write(10,'(F9.2,F9.2,F9.3,F9.3,F9.3,F9.3)') &
+                    POWER/1.0E6,Q_core*3600.0,T_in,T_out,T_coolant_max,T_core_max
         write(10,*)
         write(10,*) "=================================================================="
         write(10,*)
@@ -342,14 +345,14 @@ CONTAINS
     
     
     
-        !================================================================================
+    !================================================================================
     !  SUBROUTINE: pebblebedLSSSloop  [W/m-K]
     !================================================================================
     ! INPUTS    
     ! OUTPUTS   
     ! REFERENCE 
     !================================================================================
-    SUBROUTINE pebblebedLSSSloop(W_core,T_in,T_fuel_limit,T_coolant_limit,T_out_limit,T_out,T_coolant_max,T_core_max)
+    SUBROUTINE pebblebedLSSSloop(Q_core,T_in,T_fuel_limit,T_coolant_limit,T_out_limit,T_out,T_coolant_max,T_core_max)
         
         IMPLICIT NONE
         
@@ -364,7 +367,7 @@ CONTAINS
         real(8)             :: POWER                ! Reactor power [W]
         real(8)             :: DECAY_HEAT           ! Decay heat of reactor [W]
         real(8)             :: POWER_NORM           ! Norminal Fisison Power [W]
-        real(8)             :: W_core               ! Mass flow rate in the core [kg/s]
+        real(8)             :: Q_core               ! Volumetric flow rate in the core [kg/s]
         real(8)             :: T_in                 ! Inlet temperature of the core [Celcius]
         real(8)             :: T_out                ! Maximum coolant temperature [Celcius]
         real(8)             :: T_out_avg            ! Holder for T_out in average channel
@@ -383,8 +386,8 @@ CONTAINS
         write(20,'(A54)')              "                           HOT CHANNEL                             "
         write(20,'(A54)',ADVANCE='NO') " =================================================================="    
         write(20,'(A54)')              " =================================================================="
-        write(20,'(A54)',ADVANCE='NO') "   POWER      W      T_IN    T_OUT    TC_MAX   TF_MAX"    
-        write(20,'(A54)')              "   POWER      W      T_IN    T_OUT    TC_MAX   TF_MAX"
+        write(20,'(A54)',ADVANCE='NO') "   POWER      Q      T_IN    T_OUT    TC_MAX   TF_MAX"    
+        write(20,'(A54)')              "   POWER      Q      T_IN    T_OUT    TC_MAX   TF_MAX"
         write(20,'(A54)',ADVANCE='NO') " ------------------------------------------------------------------"    
         write(20,'(A54)')              " ------------------------------------------------------------------"
             
@@ -396,15 +399,16 @@ CONTAINS
         coolantflag=.false.
         Toutflag=.false.
         write(*,*)
-        write(*,'(A,F5.2,A,F7.2,A)') "For primary mass flow rate of ", W_core, " and  inlet temperature of ", T_in, ":"
+        write(*,'(A,F7.2,A,F7.2,A)') "For primary volumetric flow rate of ", Q_core*3600, " m^3/hr and  inlet temperature of ", T_in, ":"
         write(*,'(A)') "======================================================================"
         write(*,*)
-        do POWER=0.0E6,50.0E6,0.01E6
+        do POWER=0.0E6,60.0E6,0.01E6
             !================================================================================
             ! Calculate core temperatures for average channel
-                        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1)
+            call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
             write(20,'(F9.2,F9.3,F9.3,F9.3,F9.3,F9.3)', ADVANCE='NO') &
-                        POWER/1.0E6,W_core,T_in,T_out,T_coolant_max,T_core_max
+                        POWER/1.0E6,Q_core*3600.0,T_in,T_out,T_coolant_max,T_core_max
+            T_out_avg=T_out
             ! Check for exceedance of LSSS T_out temperature limit
             if (T_out>=T_out_limit .AND. Toutflag==.false.) then
                 write(*,'(A,F7.2,A)') "The maximum outlet average channel temperature exceeds ", T_out_limit, " at:"
@@ -414,13 +418,14 @@ CONTAINS
             end if
             !================================================================================
             ! Calculate core temperatures for hot channel
-                        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,2)
+            call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
             write(20,'(F9.2,F9.3,F9.3,F9.3,F9.3,F9.3)') &
-                        POWER/1.0E6,W_core,T_in,T_out,T_coolant_max,T_core_max
+                        POWER/1.0E6,Q_core*3600,T_in,T_out,T_coolant_max,T_core_max
             ! Check for exceedance of LSSS coolant temperature limit   
             if (T_coolant_max>=T_coolant_limit .AND. coolantflag==.false.) then
                 write(*,'(A,F7.2,A)') "The maximum  coolant hot channel   temperature exceeds ", T_coolant_limit, " at:"
                 write(*,'(F5.2,A,F7.2,A,F7.2,A,F7.2)') POWER/1.0E6, " MW    T_in = ", T_in, "   T_out = ", T_out, "   TCMAX = ", T_coolant_max
+                write(*,'(A,F7.2)') "T_out_avg = ", T_out_avg
                 write(*,*) 
                 coolantflag=.true.
             end if
@@ -428,6 +433,7 @@ CONTAINS
             if (T_core_max>=T_fuel_limit .AND. fuelflag==.false.) then
                 write(*,'(A,F7.2,A)') "The maximum    fuel hot channel    temperature exceeds ", T_fuel_limit, " at:"
                 write(*,'(F5.2,A,F7.2,A,F7.2,A,F7.2)') POWER/1.0E6, " MW    T_in = ", T_in, "   T_out = ", T_out, "   TFMAX = ", T_core_max
+                write(*,'(A,F7.2)') "T_out_avg = ", T_out_avg
                 write(*,*) 
                 fuelflag=.true.
             end if
@@ -444,9 +450,9 @@ CONTAINS
         coolantflag=.false.
         Toutflag=.false.
         write(*,*)
-        write(*,'(A,F5.2,A,F7.2,A)') "For primary mass flow rate of ", W_core, " and outlet temperature of ", T_out_limit, ":"
+        write(*,'(A,F7.2,A,F7.2,A)') "For primary volumtric flow rate of ", Q_core*3600, " m^3/hr and outlet temperature of ", T_out_limit, ":"
         write(*,'(A)') "======================================================================"
-        do T_in=470.0_8,T_out_limit,1.0_8 
+        do T_in=400.0_8,T_out_limit,1.0_8 
             ! Check if all LSSS limits met
             if (Toutflag==.true. .AND. coolantflag==.true. .AND. fuelflag==.true.) then
                 write(*,*) "LSSS Limits Range Found"
@@ -459,13 +465,13 @@ CONTAINS
                 do POWER=0.0E6,50.0E6,1.0E6
                     if (Toutflag==.false.) then
                         ! Calculate core temperatures for average channel
-                        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1)
+                        call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
                         T_out_avg=T_out
                         ! Check for exceedance of LSSS T_out temperature limit
                         if (T_out>=T_out_limit .AND. Toutflag==.false.) then
                             Toutflag=.true.
                             ! Calculate core temperatures for hot channel
-                            call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,2)
+                            call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
                             if (T_coolant_max <= T_coolant_limit .AND. coolantflag==.false.) then
                                 !write(*,*) T_in, T_out_avg
                                 T_in_coolantrange=T_in-5.0
@@ -509,13 +515,13 @@ CONTAINS
                 do POWER=POWER_coolantrange,50.0E6,0.01E6_8
                     if (Toutflag==.false.) then
                         ! Calculate core temperatures for average channel
-                        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1)
+                        call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
                         T_out_avg=T_out
                         ! Check for exceedance of LSSS T_out temperature limit
                         if (T_out>=T_out_limit .AND. Toutflag==.false.) then
                             Toutflag=.true.
                             ! Calculate core temperatures for hot channel
-                            call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,2)
+                            call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
                             if (T_coolant_max <= T_coolant_limit .AND. coolantflag==.false.) then
                                 write(*,'(A,F7.2,A)') "The maximum   coolant hot channel  temperature exceeds ", T_coolant_limit, " at:"
                                 write(*,'(F5.2,A,F7.2,A,F7.2,A,F7.2)') POWER/1.0E6, " MW    T_in = ", T_in, "   T_out = ", T_out_avg, "   TCMAX = ", T_coolant_max
@@ -548,13 +554,13 @@ CONTAINS
                 do POWER=POWER_fuelrange,50.0E6,0.01E6
                     if (Toutflag==.false.) then
                         ! Calculate core temperatures for average channel
-                        call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,1)
+                        call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,1)
                         T_out_avg=T_out
                         ! Check for exceedance of LSSS T_out temperature limit
                         if (T_out>=T_out_limit .AND. Toutflag==.false.) then
                             Toutflag=.true.
                             ! Calculate core temperatures for hot channel
-                            call pebblebedcore(POWER,W_core,T_in,T_out,T_coolant_max,T_core_max,2)
+                            call pebblebedcore(POWER,Q_core,T_in,T_out,T_coolant_max,T_core_max,2)
                             if (T_core_max <= T_fuel_limit .AND. fuelflag==.false.) then
                                 write(*,'(A,F7.2,A)') "The maximum    fuel hot channel    temperature exceeds ", T_fuel_limit, " at:"
                                 write(*,'(F5.2,A,F7.2,A,F7.2,A,F7.2)') POWER/1.0E6, " MW    T_in = ", T_in, "   T_out = ", T_out_avg, "   TFMAX = ", T_core_max 

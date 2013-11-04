@@ -47,6 +47,7 @@
                 REAL(8), INTENT(IN) :: T            ! Temperature [Kelvin]             
                 flibe_k=1.0                         ! Thermal conductivity of flibe [W/m-K]
             END FUNCTION flibe_k
+            
             !================================================================================
             !  FUNCTION: DENSITY OF FLIBE [kg/m^3]
             !================================================================================
@@ -57,7 +58,8 @@
             REAL(8) FUNCTION flibe_rho(T)
                 IMPLICIT NONE
                 REAL(8), INTENT(IN) :: T            ! Temperature [Celcius]
-                flibe_rho=2422.2-0.4859*T           ! Density of flibe [kg/m^3]
+                !flibe_rho=2422.2-0.4859*T           ! Density of flibe [kg/m^3]
+                flibe_rho=(2.28-4.9E-4*T)*1.0E3
             END FUNCTION flibe_rho
             
             !================================================================================
