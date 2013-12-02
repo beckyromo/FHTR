@@ -32,7 +32,7 @@
             REAL(8) FUNCTION flibe_cp(T)
                 IMPLICIT NONE
                 REAL(8), INTENT(IN) :: T            ! Temperature [Kelvin]  
-                flibe_cp=2380.0                     ! Heat Capacity of Flibe [J/kg-C]
+                flibe_cp=2386.0                     ! Heat Capacity of Flibe [J/kg-C]
             END FUNCTION flibe_cp
             
             !================================================================================
@@ -45,27 +45,27 @@
             REAL(8) FUNCTION flibe_k(T)
                 IMPLICIT NONE
                 REAL(8), INTENT(IN) :: T            ! Temperature [Kelvin]             
-                flibe_k=1.0                         ! Thermal conductivity of flibe [W/m-K]
-            END FUNCTION flibe_k
+                flibe_k=1.1                         ! Thermal conductivity of flibe [W/m-K]
+            END FUNCTION flibe_k    
             
             !================================================================================
             !  FUNCTION: DENSITY OF FLIBE [kg/m^3]
             !================================================================================
-            ! INPUT     ::  Temperature [Kelvin]
+            ! INPUT     ::  Temperature [Celcius]
             ! OUTPUT    ::  Density of flibe [kg/m^3] 
             ! REFERENCE ::  Compilation
             !================================================================================
             REAL(8) FUNCTION flibe_rho(T)
                 IMPLICIT NONE
                 REAL(8), INTENT(IN) :: T            ! Temperature [Celcius]
-                !flibe_rho=2422.2-0.4859*T           ! Density of flibe [kg/m^3]
-                flibe_rho=(2.28-4.9E-4*T)*1.0E3
+                !flibe_rho=2422.2-0.4859*T          ! Yao Density of flibe [kg/m^3]
+                flibe_rho=2413-0.488*(T+273.0)      ! Density of flibe [kg/m^3]
             END FUNCTION flibe_rho
             
             !================================================================================
             !  FUNCTION: VISCOSITY OF FLIBE [Pa-s]
             !================================================================================
-            ! INPUT     ::  Temperature [Kelvin]
+            ! INPUT     ::  Temperature [Celcius]
             ! OUTPUT    ::  Viscosity of flibe [Pa-s]
             ! REFERENCE ::  Williams et al. (2006), Benes et al. (2012)
             !================================================================================
@@ -73,6 +73,7 @@
                 IMPLICIT NONE
                 REAL(8), INTENT(IN) :: T                    ! Temperature [Celcius]              
                 flibe_mu=0.000116*EXP(3755.0/(T+273.15))    ! Viscosity of flibe [Pa-s]
+                !flibe_mu=0.00561_8
             END FUNCTION
             
             !================================================================================
@@ -84,7 +85,7 @@
             !================================================================================
             REAL(8) FUNCTION flibe_enthalpy(T)
                 IMPLICIT NONE
-                REAL(8), INTENT(IN) :: T            ! Temperature [Celcius]
+                REAL(8), INTENT(IN) :: T                    ! Temperature [Celcius]
                 flibe_enthalpy=flibe_cp(T)*(T-T_REF)
             END FUNCTION         
             
@@ -97,7 +98,7 @@
             !================================================================================
             REAL(8) FUNCTION flibe_temperature(h)
                 IMPLICIT NONE
-                REAL(8), INTENT(IN) :: h            ! Enthalpy
+                REAL(8), INTENT(IN) :: h                    ! Enthalpy
                 flibe_temperature=h/flibe_cp(T_REF)+T_REF
             END FUNCTION         
     

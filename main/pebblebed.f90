@@ -51,7 +51,7 @@ CONTAINS
     
         USE global
         USE flibeprop, ONLY: flibe_cp, flibe_k, flibe_rho, flibe_mu, flibe_enthalpy, flibe_temperature
-        USE trisoprop, ONLY: k_graphite, k_SiC, K_densePyC, k_PyC, k_UO2, k_TRISOlayer
+        USE trisoprop, ONLY: k_TRISO, k_SiC, K_densePyC, k_PyC, k_UO2, k_TRISOlayer
         USE pipes, ONLY: FF_PIPE, dP_PIPE
         
         IMPLICIT NONE
@@ -179,7 +179,18 @@ CONTAINS
         
 
         
+        !================================================================================
         ! Set criteria for average (1) or hot (2) channel
+        !--------------------------------------------------------------------------------
+        !
+        ! channel==1 --> average channel:
+        ! Override hot channel factors to 1.0_8 such that the hot channel factors are 
+        ! not applied for the average channel.
+        !
+        ! channel==2 --> hot channel:
+        ! Adjust flow rate for hot channel using the channel flow disparity factor.
+        !
+        !================================================================================
         IF (channel==1) THEN
             W=Q_core*flibe_rho(T_in)
             FH=1.0_8
@@ -221,7 +232,7 @@ CONTAINS
             ! Calculate pressure drop in node
             IF (channel==1) THEN
                 FF_core=FF_PB(W,D_core,D_pebble,TC,1)
-                dP_core=dP_core+0.5*(H_core/N_core)*(W/A_core)**2.0/(flibe_rho(TC)*D_pebble) &
+                dP_core=dP_core+0.5*FF_core*(H_core/N_core)*(W/A_core)**2.0/(flibe_rho(TC)*D_pebble) &
                         + flibe_rho(TC)*GRAVITY*H_core/N_core
             END IF
             
@@ -258,7 +269,7 @@ CONTAINS
             TG=0.0
             do while (abs(T_temp-TG)>TOL)
                 T_temp=TG
-                KPF(7)=k_graphite( (TW+T_temp)/2.0 )
+                KPF(7)=k_TRISO( (TW+T_temp)/2.0 )
                 U=1.0/(4.0*PI*KPF(7)) * (1.0/RPF(6) - 1.0/RPF(7))
                 TG=PPP*U + TW
             end do
@@ -268,7 +279,7 @@ CONTAINS
             T_CL_core(I)=0.0
             do while (abs(T_temp-T_CL_core(I))>TOL)
                 T_temp=T_CL_core(I)
-                KPF(6)=k_graphite( (TG+T_temp)/2.0 )
+                KPF(6)=k_TRISO( (TG+T_temp)/2.0 )
                 T_CL_core(I)=PPP*(RPF(6)**2.0/6.0/KPF(6)/VolPF6) + TG
             end do
             
